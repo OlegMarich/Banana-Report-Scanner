@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banana Reports — Scanner</title>
+
+  <link rel="stylesheet" href="/css/reset.css">
+  <link rel="stylesheet" href="/css/style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+
+<body>
+  <div class="page page--scanner">
+
+    <header class="page__header"></header>
+
+    <section class="page__section">
+
+      <div class="container">
+
+        <!-- QR (desktop only) -->
+        <div class="scanner-qr">
+          <h3 class="scanner-qr__title">📱 Підключення телефону</h3>
+          <p class="scanner-qr__description">Скануй QR‑код, щоб відкрити сканер на телефоні</p>
+
+          <div id="qrBox" class="scanner-qr__code"></div>
+
+          <button id="refreshQR" class="button button--primary">🔄 Оновити QR</button>
+        </div>
+
+        <!-- Scanner -->
+        <div class="scanner">
+
+          <h2 class="section__title">📦 Scanner</h2>
+
+          <label class="form__label">
+            Дата:
+            <input type="date" id="scanDate" class="input">
+          </label>
+
+          <button id="loadOrders" class="button button--primary">Завантажити замовлення</button>
+
+          <label class="form__label">
+            Клієнт:
+            <select id="clientSelect" class="select">
+              <option value="">— виберіть клієнта —</option>
+            </select>
+          </label>
+
+          <label class="form__label">
+            Скан контейнера:
+          </label>
+
+          <button id="cameraScanBtn" class="button button--primary button--big">📷 Сканувати фото</button>
+
+          <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+
+          <img id="preview" class="scanner__preview" style="display:none">
+
+          <input type="text" id="scanInput" class="input" placeholder="Сканований номер..." autocomplete="off">
+
+          <label class="form__label">
+            Кількість:
+            <input type="number" id="qtyInput" class="input" value="1" inputmode="numeric" pattern="[0-9]*">
+          </label>
+
+          <div class="section__actions">
+            <button id="finishBtn" class="button button--primary">Завершити клієнта</button>
+            <button id="undoBtn" class="button button--secondary">↩️ Undo</button>
+          </div>
+
+          <div id="log" class="scanner__log"></div>
+
+          <div class="section__actions">
+            <a href="/index.html" class="button button--secondary">← Back to Home</a>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <footer class="page__footer"></footer>
+
+  </div>
+
+  <script src="/js/scanner.js"></script>
+</body>
+
+</html>

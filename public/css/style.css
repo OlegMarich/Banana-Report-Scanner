@@ -1,0 +1,390 @@
+/* ============================================================
+   GLOBAL RESET
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+:root {
+  --primary: #7c3aed;
+  --primary-hover: #6b21a8;
+  --text: #1f2937;
+  --text-light: #4b5563;
+  --bg: #f9fafb;
+  --white: #fff;
+  --gray: #f3f4f6;
+  --blue: #0077c8;
+  --yellow: #f5d742;
+  --yellow-dark: #c9a500;
+}
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  border: none;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+/* ============================================================
+   PAGE LAYOUT
+   ============================================================ */
+
+.page {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.page__header,
+.page__footer {
+  padding: 20px 0;
+}
+
+.page__section {
+  flex-grow: 1;
+  padding: 40px 16px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
+
+.section__title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.section__subtitle {
+  font-size: 1.25rem;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.section__description {
+  font-size: 1rem;
+  color: var(--text-light);
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.button {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  text-align: center;
+  transition: 0.25s;
+  border: none;
+}
+
+.button--primary {
+  background: var(--primary);
+  color: var(--white);
+}
+
+.button--primary:hover {
+  background: var(--primary-hover);
+}
+
+.button--secondary {
+  background: transparent;
+  border: 1px solid #d1d5db;
+  color: var(--text);
+}
+
+.button--secondary:hover {
+  background: var(--gray);
+}
+
+.button--big {
+  padding: 16px 28px;
+  font-size: 1.25rem;
+}
+
+/* ============================================================
+   INPUTS & SELECTS
+   ============================================================ */
+
+.input,
+.select {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 1rem;
+  margin-top: 6px;
+  background: var(--white);
+}
+
+.input:focus,
+.select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+  outline: none;
+}
+
+.form__label {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+  font-size: 0.95rem;
+}
+
+/* ============================================================
+   DROPZONE
+   ============================================================ */
+
+.dropzone {
+  border: 2px dashed var(--primary);
+  padding: 40px;
+  border-radius: 12px;
+  background: var(--white);
+  text-align: center;
+  margin-bottom: 24px;
+  transition: background 0.3s;
+}
+
+.dropzone:hover {
+  background: var(--gray);
+}
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal__content {
+  background: var(--white);
+  padding: 32px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.modal__title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* ============================================================
+   HERO (index)
+   ============================================================ */
+
+.section__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+@media (max-width: 540px) {
+  .section__actions {
+    /* flex-direction: row; */
+    flex-direction: column;
+  }
+}
+/* ============================================================
+   SCANNER
+   ============================================================ */
+
+.scanner {
+  margin-top: 20px;
+}
+
+.scanner__preview {
+  width: 100%;
+  border-radius: 12px;
+  margin-top: 12px;
+}
+
+.scanner__log {
+  background: var(--gray);
+  border-radius: 8px;
+  padding: 12px;
+  height: 180px;
+  overflow-y: auto;
+  margin-top: 20px;
+  font-size: 0.9rem;
+}
+
+.flash-success {
+  background: #c8ffc8 !important;
+  transition: background 0.4s ease;
+}
+
+/* QR block (desktop only) */
+.scanner-qr {
+  background: var(--white);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.scanner-qr__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.scanner-qr__description {
+  color: var(--text-light);
+  margin-bottom: 12px;
+}
+
+/* ============================================================
+   CHAMBERS (Ripening Plan)
+   ============================================================ */
+
+.chambers {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.chambers__left-side,
+.chambers__right-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.page__chamber {
+  position: relative;
+  width: 8.75rem;
+  height: 10rem;
+  background: #444;
+  cursor: pointer;
+  perspective: 1000px;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.page__chamber:hover {
+  transform: scale(1.03);
+}
+
+.page__chamber::after {
+  content: attr(data-num);
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  font-weight: 700;
+  font-size: 1.4rem;
+  z-index: 3;
+}
+
+.page__chamber-door {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(var(--yellow), var(--yellow-dark));
+  transform-origin: bottom center;
+  transition: transform 1.2s cubic-bezier(0.55, 0.068, 0.265, 1.55), box-shadow 0.5s ease;
+  z-index: 2;
+}
+
+.page__chamber.open .page__chamber-door {
+  transform: translateY(-100%) rotateX(10deg);
+  box-shadow: 0 1rem 1.5rem rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================================
+   MOBILE ADAPTATION
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .page__section {
+    padding: 20px 12px;
+  }
+
+  .button {
+    font-size: 1.1rem;
+    padding: 14px;
+  }
+
+  .input,
+  .select {
+    font-size: 1.1rem;
+    padding: 14px;
+  }
+
+  .scanner-qr {
+    display: none;
+  }
+
+  .chambers {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .chambers__left-side,
+  .chambers__right-side {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .page__chamber {
+    width: 6.5rem;
+    height: 7.5rem;
+  }
+
+  .page__chamber::after {
+    font-size: 1.2rem;
+  }
+}
