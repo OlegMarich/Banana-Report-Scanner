@@ -1,210 +1,192 @@
-const logBox = document.getElementById('log');
-const scanInput = document.getElementById('scanInput');
-const qtyInput = document.getElementById('qtyInput');
-const clientSelect = document.getElementById('clientSelect');
-const scanDate = document.getElementById('scanDate');
+// ===============================
+// CONFIG
+// ===============================
+const SCANNER_URL = window.location.origin + '/components/scanner.html';
+const KNOWN_PREFIXES = ['MSKU', 'TCLU', 'TEMU', 'FCIU', 'TRHU', 'CAIU'];
 
-/* ----------------- BEEP (Web Audio API) ----------------- */
-function beep(freq = 1000, duration = 0.1) {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = 'square';
-    osc.frequency.value = freq;
-    gain.gain.value = 0.1;
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start();
-    osc.stop(ctx.currentTime + duration);
-  } catch (err) {
-    console.warn('Audio error:', err);
-  }
-}
-
-/* ----------------- QR CODE ----------------- */
-async function generateQR() {
-  const res = await fetch('/api/server-info');
-  const info = await res.json();
-
-  const url = `http://${info.ip}:${info.port}/components/scanner.html`;
-
-  document.getElementById('qrBox').innerHTML = '';
-
-  new QRCode(document.getElementById('qrBox'), {
-    text: url,
-    width: 180,
-    height: 180,
-    colorDark: '#000000',
-    colorLight: '#ffffff',
-    correctLevel: QRCode.CorrectLevel.H,
-  });
-}
-
-document.getElementById('refreshQR').onclick = generateQR;
-generateQR();
-
-/* ----------------- LOG ----------------- */
-function log(msg) {
-  logBox.innerHTML += msg + '<br>';
-  logBox.scrollTop = logBox.scrollHeight;
-}
-
-/* ----------------- FLASH SUCCESS ----------------- */
-function flashSuccess() {
-  scanInput.classList.add('flash-success');
-  setTimeout(() => scanInput.classList.remove('flash-success'), 400);
-}
-
-/* ----------------- AUTOFOCUS ----------------- */
-window.addEventListener('load', () => {
-  scanInput.focus();
+// ===============================
+// INIT
+// ===============================
+document.addEventListener('DOMContentLoaded', () => {
+  initQR();
+  initScannerUI();
 });
 
-/* ----------------- LOAD CLIENTS ----------------- */
-document.getElementById('loadOrders').onclick = async () => {
-  const date = scanDate.value;
-  if (!date) return alert('Виберіть дату');
+// ===============================
+// QR INIT
+// ===============================
+function initQR() {
+  const qrBox = document.getElementById('qrBox');
+  if (!qrBox) return;
 
-  const res = await fetch(`/api/orders/${date}`);
-  const list = await res.json();
+  qrBox.innerHTML = '';
 
-  clientSelect.innerHTML = `<option value="">— виберіть клієнта —</option>`;
-  list.forEach((c) => {
-    const opt = document.createElement('option');
-    opt.value = c;
-    opt.textContent = c;
-    clientSelect.appendChild(opt);
+  new QRCode(qrBox, {
+    text: SCANNER_URL,
+    width: 200,
+    height: 200,
   });
 
-  log('✔ Завантажено клієнтів: ' + list.length);
-};
+  const link = document.createElement('a');
+  link.href = SCANNER_URL;
+  link.target = '_blank';
+  link.textContent = 'Відкрити сканер у браузері';
+  link.className = 'button button--primary';
+  link.style.display = 'inline-block';
+  link.style.marginTop = '12px';
 
-/* ----------------- SCAN HANDLER (Enter) ----------------- */
-let lastScan = null;
+  qrBox.appendChild(link);
+}
 
-scanInput.addEventListener('keydown', async (e) => {
-  if (e.key !== 'Enter') return;
+// ===============================
+// SCANNER UI
+// ===============================
+function initScannerUI() {
+  const cameraBtn = document.getElementById('cameraScanBtn');
+  const cameraInput = document.getElementById('cameraInput');
+  const preview = document.getElementById('preview');
+  const scanInput = document.getElementById('scanInput');
+  const qtyInput = document.getElementById('qtyInput');
+  const logBox = document.getElementById('log');
+  const undoBtn = document.getElementById('undoBtn');
+  const finishBtn = document.getElementById('finishBtn');
+  const loadOrdersBtn = document.getElementById('loadOrders');
+  const clientSelect = document.getElementById('clientSelect');
 
-  const date = scanDate.value;
-  const client = clientSelect.value;
-  const container = scanInput.value.trim();
-  const qty = Number(qtyInput.value);
+  if (!cameraBtn || !cameraInput) return;
 
-  if (!date || !client || !container) {
-    log('❌ Заповніть всі поля');
-    beep(300);
-    return;
-  }
-
-  const res = await fetch('/api/scan', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({date, client, container, qty}),
+  // Відкрити камеру
+  cameraBtn.addEventListener('click', () => {
+    cameraInput.click();
   });
 
-  const data = await res.json();
+  // Обробка вибраного фото
+  cameraInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  if (data.remaining !== null) {
-    log(`${data.message} | Залишилось: ${data.remaining} / ${data.total}`);
-  } else {
-    log(data.message);
+    const img = new Image();
+    img.onload = async () => {
+      const canvas = resizeImage(img);
+      preview.src = canvas.toDataURL('image/jpeg');
+      preview.style.display = 'block';
+
+      const text = await runOCR(canvas);
+      const cleaned = cleanContainerText(text);
+      const corrected = autoCorrectPrefix(cleaned);
+
+      scanInput.value = corrected;
+      flashSuccess(scanInput);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+
+  // Undo
+  undoBtn.addEventListener('click', () => {
+    const last = logBox.lastElementChild;
+    if (last) logBox.removeChild(last);
+  });
+
+  // Завершити клієнта (приклад — просто лог)
+  finishBtn.addEventListener('click', () => {
+    const client = clientSelect.value || '(без клієнта)';
+    const date = document.getElementById('scanDate').value || '(без дати)';
+    const entry = document.createElement('div');
+    entry.textContent = `✅ Завершено клієнта: ${client}, дата: ${date}`;
+    logBox.appendChild(entry);
+    logBox.scrollTop = logBox.scrollHeight;
+  });
+
+  // Завантажити замовлення (заглушка)
+  loadOrdersBtn.addEventListener('click', () => {
+    // Тут ти підключиш свій API
+    clientSelect.innerHTML = `
+      <option value="">— виберіть клієнта —</option>
+      <option value="Client A">Client A</option>
+      <option value="Client B">Client B</option>
+    `;
+  });
+
+  // Додавання запису по Enter
+  scanInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addLogEntry(scanInput, qtyInput, logBox);
+    }
+  });
+}
+
+// ===============================
+// OCR
+// ===============================
+async function runOCR(canvas) {
+  try {
+    const {data} = await Tesseract.recognize(canvas, 'eng', {
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+    });
+    return data.text || '';
+  } catch (err) {
+    console.error('OCR error:', err);
+    return '';
   }
+}
 
-  lastScan = {date, client, container, qty};
+// ===============================
+// IMAGE RESIZE
+// ===============================
+function resizeImage(img) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
 
-  flashSuccess();
-  beep(1000);
+  const maxSize = 1024;
+  const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+
+  canvas.width = img.width * scale;
+  canvas.height = img.height * scale;
+
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas;
+}
+
+// ===============================
+// TEXT CLEANING & CORRECTION
+// ===============================
+function cleanContainerText(text) {
+  return text
+    .toUpperCase()
+    .replace(/\s+/g, '')
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+function autoCorrectPrefix(text) {
+  if (!text) return '';
+
+  for (let prefix of KNOWN_PREFIXES) {
+    if (text.startsWith(prefix.slice(1))) {
+      return prefix + text.slice(prefix.length - 1);
+    }
+  }
+  return text;
+}
+
+// ===============================
+// LOGIC HELPERS
+// ===============================
+function addLogEntry(scanInput, qtyInput, logBox) {
+  const value = scanInput.value.trim();
+  const qty = qtyInput.value || '1';
+  if (!value) return;
+
+  const entry = document.createElement('div');
+  entry.textContent = `+ ${value} x ${qty}`;
+  logBox.appendChild(entry);
+  logBox.scrollTop = logBox.scrollHeight;
 
   scanInput.value = '';
+  qtyInput.value = '1';
+}
 
-  // 🔥 Після Enter → фокус на кількість
-  setTimeout(() => {
-    qtyInput.focus();
-    qtyInput.select(); // виділяє "1"
-  }, 150);
-});
-
-/* ----------------- UNDO ----------------- */
-document.getElementById('undoBtn').onclick = async () => {
-  if (!lastScan) {
-    log('❌ Немає що відміняти');
-    beep(300);
-    return;
-  }
-
-  const {date, client, container, qty} = lastScan;
-
-  const res = await fetch('/api/scan', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      date,
-      client,
-      container,
-      qty: -qty,
-    }),
-  });
-
-  const data = await res.json();
-  log(`↩️ Відмінено: ${qty} | Залишилось: ${data.remaining} / ${data.total}`);
-
-  beep(600);
-  lastScan = null;
-};
-
-/* ----------------- PHOTO OCR (NEW) ----------------- */
-const cameraBtn = document.getElementById('cameraScanBtn');
-const cameraInput = document.getElementById('cameraInput');
-const preview = document.getElementById('preview');
-
-cameraBtn.onclick = () => cameraInput.click();
-
-cameraInput.onchange = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  preview.src = URL.createObjectURL(file);
-  preview.style.display = 'block';
-
-  scanInput.value = '⏳ Розпізнавання...';
-
-  const {data} = await Tesseract.recognize(file, 'eng', {
-    tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-  });
-
-  let text = data.text.replace(/\s+/g, '').toUpperCase();
-
-  const match = text.match(/[A-Z]{4}\d{7}/);
-
-  scanInput.value = match ? match[0] : text;
-
-  // 🔥 Автоматичний Enter
-  const enterEvent = new KeyboardEvent('keydown', {key: 'Enter'});
-  scanInput.dispatchEvent(enterEvent);
-
-  // 🔥 Після OCR → фокус на кількість
-  setTimeout(() => {
-    qtyInput.focus();
-    qtyInput.select();
-  }, 300);
-};
-
-/* ----------------- FINISH CLIENT ----------------- */
-document.getElementById('finishBtn').onclick = async () => {
-  const client = clientSelect.value;
-  if (!client) return alert('Виберіть клієнта');
-
-  const res = await fetch('/api/finish', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({client}),
-  });
-
-  const data = await res.json();
-  log('✔ Завершено: ' + client);
-  beep(600);
-};
+function flashSuccess(el) {
+  el.classList.add('flash-success');
+  setTimeout(() => el.classList.remove('flash-success'), 400);
+}

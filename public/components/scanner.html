@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Banana Reports — Scanner</title>
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
 
   <link rel="stylesheet" href="/css/reset.css">
   <link rel="stylesheet" href="/css/style.css">
@@ -15,26 +18,22 @@
 
 <body>
   <div class="page page--scanner">
-
     <header class="page__header"></header>
 
     <section class="page__section">
-
       <div class="container">
 
-        <!-- QR (desktop only) -->
+        <!-- QR блок (для підключення телефону) -->
         <div class="scanner-qr">
           <h3 class="scanner-qr__title">📱 Підключення телефону</h3>
-          <p class="scanner-qr__description">Скануй QR‑код, щоб відкрити сканер на телефоні</p>
-
+          <p class="scanner-qr__description">
+            Скануй QR‑код або натисни кнопку, щоб відкрити сканер у браузері на телефоні.
+          </p>
           <div id="qrBox" class="scanner-qr__code"></div>
-
-          <button id="refreshQR" class="button button--primary">🔄 Оновити QR</button>
         </div>
 
-        <!-- Scanner -->
+        <!-- Основний сканер -->
         <div class="scanner">
-
           <h2 class="section__title">📦 Scanner</h2>
 
           <label class="form__label">
@@ -56,7 +55,6 @@
           </label>
 
           <button id="cameraScanBtn" class="button button--primary button--big">📷 Сканувати фото</button>
-
           <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
 
           <img id="preview" class="scanner__preview" style="display:none">
@@ -78,15 +76,12 @@
           <div class="section__actions">
             <a href="/index.html" class="button button--secondary">← Back to Home</a>
           </div>
-
         </div>
 
       </div>
-
     </section>
 
     <footer class="page__footer"></footer>
-
   </div>
 
   <script src="/js/scanner.js"></script>
