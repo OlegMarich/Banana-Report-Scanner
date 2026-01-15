@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const {exec} = require('child_process');
+const { exec } = require('child_process');
 const cors = require('cors');
 const scanBox = require('./scan-to-counter');
 const os = require('os');
@@ -10,25 +10,32 @@ const os = require('os');
 const app = express();
 const PORT = 3000;
 
+/* ---------------- MIDDLEWARE ---------------- */
+
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({ extended: true }));
+
+/* ---------------- PATHS ---------------- */
 
 const inputDir = path.join(__dirname, 'input');
 const outputDir = path.join(__dirname, 'output');
 const publicDir = path.join(__dirname, 'public');
 
+/* ---------------- STORAGE ---------------- */
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, inputDir),
   filename: (req, file, cb) => cb(null, file.originalname),
 });
-const upload = multer({storage});
+const upload = multer({ storage });
 
 if (!fs.existsSync(outputDir)) {
-  fs.mkdirSync(outputDir, {recursive: true});
+  fs.mkdirSync(outputDir, { recursive: true });
 }
 
 /* ---------------- UPLOAD ---------------- */
+
 app.post('/upload', upload.array('files', 2), (req, res) => {
   const userDate = req.query.date;
 
@@ -40,157 +47,120 @@ app.post('/upload', upload.array('files', 2), (req, res) => {
   }
 
   const tempDir = path.join(__dirname, 'temp', userDate);
-  fs.mkdirSync(tempDir, {recursive: true});
+  fs.mkdirSync(tempDir, { recursive: true });
 
   try {
     for (const file of req.files) {
-      const src = file.path;
-      const dest = path.join(tempDir, file.originalname);
-      fs.copyFileSync(src, dest);
+      fs.copyFileSync(file.path, path.join(tempDir, file.originalname));
     }
   } catch (err) {
     console.error('❌ Failed to copy files:', err);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to copy files to temp',
-    });
+    return res.status(500).json({ success: false });
   }
 
   const cmd = `node run-all.js ${userDate} "${tempDir}"`;
 
   exec(cmd, (err, stdout, stderr) => {
     if (err) {
-      console.error('❌ Error during script run:', stderr);
+      console.error(stderr);
       cleanupTemp(tempDir);
-      return res.status(500).json({
-        success: false,
-        message: 'Script execution error',
-      });
+      return res.status(500).json({ success: false });
     }
 
     const match = stdout.match(/@@@DONE:(\d{4}-\d{2}-\d{2})/);
-    const resultDate = match ? match[1] : null;
+    const resultDate = match?.[1];
 
     if (!resultDate) {
       cleanupTemp(tempDir);
-      return res.status(500).json({
-        success: false,
-        message: 'No completion confirmation found',
-      });
+      return res.status(500).json({ success: false });
     }
 
-    const folderPath = path.join(outputDir, resultDate);
-    exec(`start "" "${folderPath}"`, () => {});
-
+    exec(`start "" "${path.join(outputDir, resultDate)}"`, () => {});
     cleanupTemp(tempDir);
 
-    res.json({
-      success: true,
-      message: 'Report generated successfully',
-      date: resultDate,
-    });
+    res.json({ success: true, date: resultDate });
   });
 });
 
 function cleanupTemp(dir) {
   try {
     if (fs.existsSync(dir)) {
-      fs.rmSync(dir, {recursive: true, force: true});
-      console.log(`🧹 Temp cleaned: ${dir}`);
+      fs.rmSync(dir, { recursive: true, force: true });
     }
   } catch (err) {
-    console.error('⚠️ Failed to clean temp:', err);
+    console.error(err);
   }
 }
 
 /* ---------------- SCANNER API ---------------- */
 
 app.get('/api/orders/:date', (req, res) => {
-  const {date} = req.params;
-  const filePath = path.join(outputDir, date, 'data.json');
-
+  const filePath = path.join(outputDir, req.params.date, 'data.json');
   if (!fs.existsSync(filePath)) return res.json([]);
 
   try {
-    const raw = fs.readFileSync(filePath, 'utf-8');
-    const rows = JSON.parse(raw);
-
+    const rows = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     const clients = rows
-      .filter((r) => r['Data wysyłki'] === date)
-      .map((r) => r['Odbiorca'])
+      .map(r => r['Odbiorca'])
       .filter(Boolean);
 
     res.json([...new Set(clients)]);
-  } catch (err) {
-    console.error(err);
+  } catch {
     res.json([]);
   }
 });
 
 app.post('/api/scan', async (req, res) => {
-  const {date, client, container, qty} = req.body;
-
   try {
     const result = await scanBox({
-      date,
-      client,
-      containerNumber: container,
-      quantity: qty,
+      date: req.body.date,
+      client: req.body.client,
+      containerNumber: req.body.container,
+      quantity: req.body.qty,
     });
 
     res.json({
-      message: `✔ Додано ${qty} у ${container}`,
-      total: result.total,
-      scanned: result.scanned,
-      remaining: result.remaining,
+      message: `✔ Додано ${req.body.qty}`,
+      ...result,
     });
   } catch (err) {
-    res.json({message: '❌ Помилка: ' + err.message});
+    res.json({ message: '❌ ' + err.message });
   }
 });
 
 app.post('/api/finish', (req, res) => {
-  const {client} = req.body;
-  if (!client) return res.status(400).json({ok: false});
-  console.log(`✅ FINISHED ORDER: ${client}`);
-  res.json({ok: true});
+  if (!req.body.client) return res.status(400).json({ ok: false });
+  console.log(`✅ FINISHED: ${req.body.client}`);
+  res.json({ ok: true });
 });
 
-/* ---------------- AUTO-DETECT IP ---------------- */
+/* ---------------- STATIC ---------------- */
+
+// 🔥 ФРОНТЕНД
+app.use(express.static(publicDir));
+
+// 📁 OUTPUT
+app.use('/output', express.static(outputDir));
+
+/* ---------------- IP INFO ---------------- */
 
 function getLocalIP() {
-  const interfaces = os.networkInterfaces();
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
-      }
+  const nets = os.networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === 'IPv4' && !net.internal) return net.address;
     }
   }
   return 'localhost';
 }
 
+/* ---------------- START ---------------- */
+
 const LOCAL_IP = getLocalIP();
 
-/* ---------------- SERVE SCANNER WITH IP HEADER ---------------- */
-
-app.get('/components/scanner.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'components', 'scanner.html'), {
-    headers: {
-      'X-Server-IP': LOCAL_IP,
-    },
-  });
-});
-
-/* ---------------- STATIC FILES ---------------- */
-
-app.use(express.static(publicDir));
-app.use('/output', express.static(outputDir));
-
-/* ---------------- START SERVER ---------------- */
-
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`📡 Server running at:`);
+  console.log('📡 Server running:');
   console.log(`   http://localhost:${PORT}`);
   console.log(`   http://${LOCAL_IP}:${PORT}`);
+  console.log(`   Scanner → /scanner.html`);
 });
