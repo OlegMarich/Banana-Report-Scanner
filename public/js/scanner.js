@@ -1,16 +1,33 @@
 // ===============================
-// CONFIG
+// AUTO-DETECT SERVER IP
 // ===============================
-const SCANNER_URL = `http://${window.location.host}/components/scanner.html`;
-const KNOWN_PREFIXES = ['SUDU', 'MNBU', 'MSKU', 'TCLU', 'TEMU', 'FCIU', 'TRHU', 'CAIU'];
+let SCANNER_URL = null;
+
+async function detectServerIP() {
+  try {
+    const res = await fetch(window.location.href, {method: 'HEAD'});
+    const ip = res.headers.get('X-Server-IP');
+    return ip || window.location.hostname;
+  } catch (e) {
+    return window.location.hostname;
+  }
+}
 
 // ===============================
 // INIT
 // ===============================
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  const ip = await detectServerIP();
+  SCANNER_URL = `http://${ip}:3000/components/scanner.html`;
+
   initQR();
   initScannerUI();
 });
+
+// ===============================
+// CONFIG
+// ===============================
+const KNOWN_PREFIXES = ['SUDU', 'MNBU', 'MSKU', 'TCLU', 'TEMU', 'FCIU', 'TRHU', 'CAIU'];
 
 // ===============================
 // QR INIT
@@ -55,12 +72,10 @@ function initScannerUI() {
 
   if (!cameraBtn || !cameraInput) return;
 
-  // Відкрити камеру
   cameraBtn.addEventListener('click', () => {
     cameraInput.click();
   });
 
-  // Обробка вибраного фото
   cameraInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -81,13 +96,11 @@ function initScannerUI() {
     img.src = URL.createObjectURL(file);
   });
 
-  // Undo
   undoBtn.addEventListener('click', () => {
     const last = logBox.lastElementChild;
     if (last) logBox.removeChild(last);
   });
 
-  // Завершити клієнта (приклад — просто лог)
   finishBtn.addEventListener('click', () => {
     const client = clientSelect.value || '(без клієнта)';
     const date = document.getElementById('scanDate').value || '(без дати)';
@@ -97,9 +110,7 @@ function initScannerUI() {
     logBox.scrollTop = logBox.scrollHeight;
   });
 
-  // Завантажити замовлення (заглушка)
   loadOrdersBtn.addEventListener('click', () => {
-    // Тут ти підключиш свій API
     clientSelect.innerHTML = `
       <option value="">— виберіть клієнта —</option>
       <option value="Client A">Client A</option>
@@ -107,7 +118,6 @@ function initScannerUI() {
     `;
   });
 
-  // Додавання запису по Enter
   scanInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();

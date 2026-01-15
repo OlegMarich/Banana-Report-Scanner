@@ -5,6 +5,7 @@ const fs = require('fs');
 const {exec} = require('child_process');
 const cors = require('cors');
 const scanBox = require('./scan-to-counter');
+const os = require('os');
 
 const app = express();
 const PORT = 3000;
@@ -104,7 +105,6 @@ function cleanupTemp(dir) {
 
 /* ---------------- SCANNER API ---------------- */
 
-// Clients list
 app.get('/api/orders/:date', (req, res) => {
   const {date} = req.params;
   const filePath = path.join(outputDir, date, 'data.json');
@@ -127,7 +127,6 @@ app.get('/api/orders/:date', (req, res) => {
   }
 });
 
-// Add scan
 app.post('/api/scan', async (req, res) => {
   const {date, client, container, qty} = req.body;
 
@@ -150,7 +149,6 @@ app.post('/api/scan', async (req, res) => {
   }
 });
 
-// Finish client
 app.post('/api/finish', (req, res) => {
   const {client} = req.body;
   if (!client) return res.status(400).json({ok: false});
@@ -158,15 +156,15 @@ app.post('/api/finish', (req, res) => {
   res.json({ok: true});
 });
 
-/* ---------------- QR SERVER INFO ---------------- */
-
-const os = require('os');
+/* ---------------- AUTO-DETECT IP ---------------- */
 
 function getLocalIP() {
-  const nets = os.networkInterfaces();
-  for (const name of Object.keys(nets)) {
-    for (const net of nets[name]) {
-      if (net.family === 'IPv4' && !net.internal) return net.address;
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
     }
   }
   return 'localhost';
@@ -174,11 +172,13 @@ function getLocalIP() {
 
 const LOCAL_IP = getLocalIP();
 
-app.get('/api/server-info', (req, res) => {
-  res.json({
-    ip: LOCAL_IP,
-    port: PORT,
-    url: `http://${LOCAL_IP}:${PORT}/components/scanner.html`,
+/* ---------------- SERVE SCANNER WITH IP HEADER ---------------- */
+
+app.get('/components/scanner.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'components', 'scanner.html'), {
+    headers: {
+      'X-Server-IP': LOCAL_IP,
+    },
   });
 });
 
@@ -189,6 +189,8 @@ app.use('/output', express.static(outputDir));
 
 /* ---------------- START SERVER ---------------- */
 
-app.listen(3000, '0.0.0.0', () => {
-  console.log('📡 Server running on http://192.168.0.40:3000');
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`📡 Server running at:`);
+  console.log(`   http://localhost:${PORT}`);
+  console.log(`   http://${LOCAL_IP}:${PORT}`);
 });
