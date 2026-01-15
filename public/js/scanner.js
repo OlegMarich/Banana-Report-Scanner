@@ -1,8 +1,8 @@
 // ===============================
 // CONFIG
 // ===============================
-const SCANNER_URL = 'http://localhost:3000/components/scanner.html';
-const KNOWN_PREFIXES = ['MSKU', 'TCLU', 'TEMU', 'FCIU', 'TRHU', 'CAIU'];
+const SCANNER_URL = `http://${window.location.host}/components/scanner.html`;
+const KNOWN_PREFIXES = ['SUDU', 'MNBU', 'MSKU', 'TCLU', 'TEMU', 'FCIU', 'TRHU', 'CAIU'];
 
 // ===============================
 // INIT
