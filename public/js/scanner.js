@@ -1,7 +1,7 @@
 // ===============================
 // CONFIG
 // ===============================
-const SCANNER_URL = window.location.origin + '/components/scanner.html';
+const SCANNER_URL = 'http://localhost:3000/components/scanner.html';
 const KNOWN_PREFIXES = ['MSKU', 'TCLU', 'TEMU', 'FCIU', 'TRHU', 'CAIU'];
 
 // ===============================
