@@ -110,12 +110,25 @@ function initScannerUI() {
     logBox.scrollTop = logBox.scrollHeight;
   });
 
-  loadOrdersBtn.addEventListener('click', () => {
-    clientSelect.innerHTML = `
-      <option value="">— виберіть клієнта —</option>
-      <option value="Client A">Client A</option>
-      <option value="Client B">Client B</option>
-    `;
+  loadOrdersBtn.addEventListener('click', async () => {
+    const date = document.getElementById('scanDate').value;
+
+    if (!date) {
+      alert('Виберіть дату!');
+      return;
+    }
+
+    const res = await fetch(`/api/orders/${date}`);
+    const clients = await res.json();
+
+    clientSelect.innerHTML = `<option value="">— виберіть клієнта —</option>`;
+
+    clients.forEach((c) => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
+      clientSelect.appendChild(opt);
+    });
   });
 
   scanInput.addEventListener('keydown', (e) => {
@@ -182,13 +195,33 @@ function autoCorrectPrefix(text) {
 // ===============================
 // LOGIC HELPERS
 // ===============================
-function addLogEntry(scanInput, qtyInput, logBox) {
-  const value = scanInput.value.trim();
-  const qty = qtyInput.value || '1';
-  if (!value) return;
+async function addLogEntry(scanInput, qtyInput, logBox) {
+  const container = scanInput.value.trim();
+  const qty = Number(qtyInput.value || 1);
+  const date = document.getElementById('scanDate').value;
+  const client = document.getElementById('clientSelect').value;
 
+  if (!container) return;
+  if (!date) return alert('Виберіть дату!');
+  if (!client) return alert('Виберіть клієнта!');
+
+  // Відправляємо на сервер
+  const res = await fetch('/api/scan', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      date,
+      client,
+      container,
+      qty,
+    }),
+  });
+
+  const data = await res.json();
+
+  // Додаємо в лог
   const entry = document.createElement('div');
-  entry.textContent = `+ ${value} x ${qty}`;
+  entry.textContent = `${data.message} (Разом: ${data.scanned}/${data.total})`;
   logBox.appendChild(entry);
   logBox.scrollTop = logBox.scrollHeight;
 
